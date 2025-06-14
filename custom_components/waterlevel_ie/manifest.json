@@ -1,0 +1,10 @@
+{
+  "domain": "waterlevel_ie",
+  "name": "WaterLevel.ie",
+  "version": "1.0.0",
+  "documentation": "https://github.com/tuckshoprn/waterlevel_ie",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@tuckshoprn"],
+  "config_flow": true
+}
