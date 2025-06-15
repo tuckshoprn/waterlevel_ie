@@ -16,9 +16,6 @@ This custom integration pulls real-time water level, temperature, and flow rate 
 2. Restart Home Assistant.
 3. Go to **Settings > Devices & Services**, click **Add Integration**, and search for `WaterLevel.ie`.
 
-## 🧾 Attribution
-
-Data provided by [WaterLevel.ie](https://waterlevel.ie), maintained by the OPW (Office of Public Works).
 
 ## 🔗 Links
 
