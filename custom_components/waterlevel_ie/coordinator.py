@@ -10,6 +10,7 @@ import aiohttp
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -18,11 +19,16 @@ from .const import (
     API_URL,
     DATA_RETENTION_HOURS,
     DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
     MAX_RETRY_ATTEMPTS,
     RETRY_BACKOFF_FACTOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Storage version for cached data
+STORAGE_VERSION = 1
+STORAGE_KEY = f"{DOMAIN}.cache"
 
 
 class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -44,6 +50,51 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_good_data: dict[str, Any] | None = None
         self._consecutive_failures = 0
         self._api_available = True
+
+        # Storage for persisting cached data across restarts
+        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+
+    async def async_load_cache(self) -> None:
+        """Load cached data from storage."""
+        try:
+            cached = await self._store.async_load()
+            if cached and isinstance(cached, dict):
+                # Check if we have valid cached data
+                if "data" in cached and "timestamp" in cached:
+                    timestamp_str = cached["timestamp"]
+                    cached_time = dt_util.parse_datetime(timestamp_str)
+
+                    if cached_time:
+                        age = dt_util.utcnow() - cached_time
+                        if age < timedelta(hours=DATA_RETENTION_HOURS):
+                            self._last_good_data = cached["data"]
+                            self._last_successful_update = cached_time
+                            _LOGGER.info(
+                                "Loaded cached data from %s ago (stored at %s)",
+                                age,
+                                timestamp_str,
+                            )
+                        else:
+                            _LOGGER.debug(
+                                "Cached data too old (%s), discarding",
+                                age,
+                            )
+        except Exception as err:
+            _LOGGER.warning("Failed to load cached data: %s", err)
+
+    async def async_save_cache(self) -> None:
+        """Save current data to storage."""
+        if self._last_good_data and self._last_successful_update:
+            try:
+                await self._store.async_save(
+                    {
+                        "data": self._last_good_data,
+                        "timestamp": self._last_successful_update.isoformat(),
+                    }
+                )
+                _LOGGER.debug("Cached data saved to storage")
+            except Exception as err:
+                _LOGGER.warning("Failed to save cache: %s", err)
 
     @property
     def api_available(self) -> bool:
@@ -75,6 +126,9 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     if not self._api_available:
                         _LOGGER.info("WaterLevel.ie API is back online")
                         self._api_available = True
+
+                    # Save to persistent storage for future restarts
+                    await self.async_save_cache()
 
                     return parsed_data
 

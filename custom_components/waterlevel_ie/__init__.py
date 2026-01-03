@@ -17,6 +17,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WaterLevel.ie from a config entry."""
     update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     coordinator = WaterLevelDataCoordinator(hass, update_interval)
+
+    # Load any cached data from previous runs before first refresh
+    await coordinator.async_load_cache()
+
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
