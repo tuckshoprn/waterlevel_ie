@@ -74,7 +74,7 @@ class WaterLevelAPIStatusSensor(
         """Return device info for the WaterLevel.ie service."""
         return {
             "identifiers": {(DOMAIN, "waterlevel_ie_service")},
-            "name": "WaterLevel.ie Service",
+            "name": "! WaterLevel.ie API",
             "manufacturer": "OPW Ireland",
             "model": "API Service",
             "configuration_url": "https://waterlevel.ie/",
