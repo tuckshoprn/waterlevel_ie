@@ -19,6 +19,66 @@ A Home Assistant custom integration that provides real-time hydrometric data fro
 - 🔌 **API Status Monitoring**: Binary sensor shows real-time API availability
 - 📍 **Location Data**: Each sensor includes GPS coordinates and Google Maps links
 
+## Data Usage & Legal Requirements
+
+### Important: Before Using This Integration
+
+This integration accesses data from [WaterLevel.ie](https://waterlevel.ie/), operated by Ireland's Office of Public Works (OPW). Before using this integration, you should be aware of the following requirements:
+
+#### 1. Notification Requirement
+
+**As a courtesy, OPW requests that you notify them before using automated data access:**
+
+- **Email**: waterlevel@opw.ie
+- **Include**: Your intention to access the data, IP address, and URL of your server(s)
+- **Purpose**: Allows OPW to manage server load and communicate any service changes
+
+While this is a courtesy request rather than a strict legal requirement, it helps maintain good relations with the data provider and ensures continued access to this valuable public data.
+
+#### 2. Data License & Attribution
+
+Data is provided under **Creative Commons Attribution 4.0 (CC-BY 4.0)** license.
+
+**Required Attribution**: "Contains Irish Public Sector Information licensed under a Creative Commons Attribution 4.0 International (CC BY 4.0) licence (source http://waterlevel.ie - provided by the Office of Public Works.)"
+
+This integration automatically includes proper attribution in sensor attributes.
+
+#### 3. Station Reference Restrictions
+
+⚠️ **Only monitoring stations with reference numbers 00001-41000 are suitable for republication.**
+
+Data from stations with reference numbers outside this range should not be used or republished without express permission from OPW. This integration automatically filters to only include eligible stations.
+
+#### 4. Automated Access Guidelines
+
+To respect OPW's infrastructure:
+
+- ✅ This integration polls **every 15 minutes by default** (configurable to 5-120 minutes)
+- ✅ Uses only pre-generated GeoJSON endpoints (no dynamic page scraping)
+- ✅ Includes proper timeout and retry logic to avoid excessive requests
+- ✅ Implements exponential backoff during service issues
+
+**OPW Guidelines**:
+- Do not bulk upload more frequently than every 15 minutes
+- Data updates approximately every 5 minutes on waterlevel.ie
+- OPW reserves the right to block users generating excessive traffic
+
+#### 5. Server Load Considerations
+
+This integration is designed to be a responsible API consumer:
+- Default 15-minute update interval aligns with OPW recommendations
+- Smart caching reduces unnecessary API calls during outages
+- Automatic retry with backoff prevents request storms
+- Respectful of public infrastructure
+
+### Full Terms & Conditions
+
+For complete terms of use, please visit:
+- **API Documentation**: [https://waterlevel.ie/page/api/](https://waterlevel.ie/page/api/)
+- **Data.gov.ie Dataset**: [OPW Hydrometric Network Real-time Water Level Data](https://data.gov.ie/dataset/opw-hydrometric-network-real-time-water-level-data)
+
+By using this integration, you agree to comply with OPW's terms of use and data licensing requirements.
+
 ## Installation
 
 ### HACS (Recommended)
