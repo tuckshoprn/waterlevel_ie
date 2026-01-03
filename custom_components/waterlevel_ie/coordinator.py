@@ -22,6 +22,8 @@ from .const import (
     DOMAIN,
     MAX_RETRY_ATTEMPTS,
     RETRY_BACKOFF_FACTOR,
+    STATION_REF_MAX,
+    STATION_REF_MIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -200,16 +202,29 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _parse_data(self, geojson: dict[str, Any]) -> dict[str, Any]:
         """Parse GeoJSON data into station dictionary."""
         stations: dict[str, Any] = {}
+        filtered_stations = set()
 
         for feature in geojson.get("features", []):
             props = feature.get("properties", {})
             coords = feature.get("geometry", {}).get("coordinates", [None, None])
             station_id = props.get("station_ref")
+            station_name = props.get("station_name", "Unknown")
             sensor_type = props.get("sensor_ref")
             value = props.get("value")
             timestamp = props.get("datetime")
 
             if not station_id or not sensor_type:
+                continue
+
+            # Filter stations based on OPW restrictions
+            # Only stations 00001-41000 are permitted for republication
+            try:
+                station_num = int(station_id)
+                if not (STATION_REF_MIN <= station_num <= STATION_REF_MAX):
+                    filtered_stations.add((station_id, station_num, station_name))
+                    continue
+            except (ValueError, TypeError):
+                _LOGGER.warning("Invalid station_ref format: %s", station_id)
                 continue
 
             if station_id not in stations:
@@ -232,5 +247,16 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     stations[station_id]["last_updated"] = timestamp
             elif timestamp:
                 stations[station_id]["last_updated"] = timestamp
+
+        # Log filtered stations for transparency (OPW compliance)
+        if filtered_stations:
+            filtered_list = sorted(filtered_stations, key=lambda x: x[1])
+            _LOGGER.info(
+                "Filtered %d stations outside permitted range (%d-%d): %s",
+                len(filtered_stations),
+                STATION_REF_MIN,
+                STATION_REF_MAX,
+                ", ".join(f"{num} ({name})" for _, num, name in filtered_list),
+            )
 
         return stations

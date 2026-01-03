@@ -15,3 +15,11 @@ RETRY_BACKOFF_FACTOR = 2  # Exponential backoff: 1s, 2s, 4s
 
 # Data retention
 DATA_RETENTION_HOURS = 24  # Keep last good data for 24 hours during outages
+
+# OPW Station Reference Restrictions
+# Per OPW terms: Only stations with reference numbers between 00001 and 41000
+# are suitable for republication. Data from stations outside this range should
+# not be used or republished without express permission from OPW.
+# Source: https://waterlevel.ie/page/api/
+STATION_REF_MIN = 1
+STATION_REF_MAX = 41000
