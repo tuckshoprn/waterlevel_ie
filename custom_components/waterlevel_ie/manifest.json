@@ -1,7 +1,7 @@
 {
   "domain": "waterlevel_ie",
   "name": "WaterLevel.ie",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "documentation": "https://github.com/tuckshoprn/waterlevel_ie",
   "issue_tracker": "https://github.com/tuckshoprn/waterlevel_ie/issues",
   "requirements": [],
