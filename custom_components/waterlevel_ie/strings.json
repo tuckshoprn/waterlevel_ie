@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up WaterLevel.ie Integration",
+        "description": "Configure how often to fetch water level data from WaterLevel.ie (OPW Ireland).\n\nThe WaterLevel.ie API updates every 15 minutes, so update intervals less than 15 minutes are not recommended.",
+        "data": {
+          "update_interval": "Update Interval"
+        },
+        "data_description": {
+          "update_interval": "How often to check for new data (15 minutes to 24 hours). Recommended: 15-30 minutes."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This integration is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure WaterLevel.ie Options",
+        "description": "Adjust how often the integration fetches data from WaterLevel.ie.\n\n**Current setting:** {current_interval} minutes\n**API update frequency:** Every {api_update_frequency} minutes\n**Allowed range:** {min_interval} to {max_interval} minutes\n\nLower intervals provide more frequent updates but use more resources. Since the API only updates every 15 minutes, intervals less than 15 minutes will not provide newer data.",
+        "data": {
+          "update_interval": "Update Interval (minutes)"
+        },
+        "data_description": {
+          "update_interval": "Enter a value between 15 minutes (most frequent) and 1440 minutes (once daily). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use."
+        }
+      }
+    }
+  }
+}
