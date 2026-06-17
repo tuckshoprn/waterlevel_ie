@@ -59,13 +59,13 @@ class WaterLevelAPIStatusSensor(
             "api_url": "https://waterlevel.ie/geojson/latest/",
         }
 
-        if self.coordinator._last_successful_update:
+        if self.coordinator.last_successful_update:
             attrs["last_successful_update"] = (
-                self.coordinator._last_successful_update.isoformat()
+                self.coordinator.last_successful_update.isoformat()
             )
 
-        if self.coordinator._consecutive_failures > 0:
-            attrs["consecutive_failures"] = self.coordinator._consecutive_failures
+        if self.coordinator.consecutive_failures > 0:
+            attrs["consecutive_failures"] = self.coordinator.consecutive_failures
 
         return attrs
 

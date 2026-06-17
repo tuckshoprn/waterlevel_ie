@@ -57,6 +57,7 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._last_successful_update: datetime | None = None
         self._last_good_data: dict[str, Any] | None = None
+        self._last_saved_data: dict[str, Any] | None = None
         self._consecutive_failures = 0
         self._api_available = True
         # Normalised station names to track; empty set means track all.
@@ -98,6 +99,11 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_save_cache(self) -> None:
         """Save current data to storage."""
         if self._last_good_data and self._last_successful_update:
+            # Skip the write if the data is unchanged since the last save to
+            # avoid needless disk I/O every update cycle.
+            if self._last_good_data == self._last_saved_data:
+                _LOGGER.debug("Cached data unchanged, skipping save")
+                return
             try:
                 await self._store.async_save(
                     {
@@ -105,6 +111,7 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "timestamp": self._last_successful_update.isoformat(),
                     }
                 )
+                self._last_saved_data = self._last_good_data
                 _LOGGER.debug("Cached data saved to storage")
             except Exception as err:
                 _LOGGER.warning("Failed to save cache: %s", err)
@@ -113,6 +120,16 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def api_available(self) -> bool:
         """Return whether the API is currently available."""
         return self._api_available
+
+    @property
+    def last_successful_update(self) -> datetime | None:
+        """Return the timestamp of the last successful update."""
+        return self._last_successful_update
+
+    @property
+    def consecutive_failures(self) -> int:
+        """Return the number of consecutive update failures."""
+        return self._consecutive_failures
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from WaterLevel.ie with retry logic and data retention."""
@@ -270,12 +287,15 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "datetime": timestamp,
             }
 
-            # Update last_updated to the latest timestamp
-            if timestamp and stations[station_id]["last_updated"]:
-                if timestamp > stations[station_id]["last_updated"]:
+            # Update last_updated to the latest timestamp. Compare parsed
+            # datetimes rather than raw strings so differing formats/offsets
+            # still order correctly; the original string is kept for display.
+            if timestamp:
+                current = stations[station_id]["last_updated"]
+                new_dt = dt_util.parse_datetime(timestamp)
+                current_dt = dt_util.parse_datetime(current) if current else None
+                if current_dt is None or (new_dt is not None and new_dt > current_dt):
                     stations[station_id]["last_updated"] = timestamp
-            elif timestamp:
-                stations[station_id]["last_updated"] = timestamp
 
         # Log filtered stations for transparency (OPW compliance)
         if filtered_stations:

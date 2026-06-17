@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -60,13 +60,26 @@ async def async_setup_entry(
 ) -> None:
     """Set up WaterLevel.ie sensors."""
     coordinator: WaterLevelDataCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[WaterLevelSensor] = []
+    known: set[tuple[str, str]] = set()
 
-    for station_id, station in coordinator.data.items():
-        for sensor_type in station["sensors"]:
-            entities.append(WaterLevelSensor(coordinator, station_id, sensor_type))
+    @callback
+    def _add_new_entities() -> None:
+        """Add entities for any stations/sensors not seen before."""
+        new_entities: list[WaterLevelSensor] = []
+        for station_id, station in coordinator.data.items():
+            for sensor_type in station["sensors"]:
+                key = (station_id, sensor_type)
+                if key not in known:
+                    known.add(key)
+                    new_entities.append(
+                        WaterLevelSensor(coordinator, station_id, sensor_type)
+                    )
+        if new_entities:
+            async_add_entities(new_entities)
 
-    async_add_entities(entities)
+    # Initial population, then add any new stations that appear in later updates
+    _add_new_entities()
+    entry.async_on_unload(coordinator.async_add_listener(_add_new_entities))
 
 
 class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntity):
@@ -163,12 +176,12 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
         }
 
         # Add information about cached data if API is unavailable
-        if not self.coordinator.api_available and self.coordinator._last_successful_update:
+        if not self.coordinator.api_available and self.coordinator.last_successful_update:
             attrs["using_cached_data"] = True
             attrs["data_age_hours"] = round(
                 (
                     dt_util.utcnow()
-                    - self.coordinator._last_successful_update
+                    - self.coordinator.last_successful_update
                 ).total_seconds()
                 / 3600,
                 1,
