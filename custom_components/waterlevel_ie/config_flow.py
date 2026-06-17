@@ -1,6 +1,7 @@
 """Config flow for WaterLevel.ie integration."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -12,6 +13,8 @@ from homeassistant.helpers import selector
 
 from .const import CONF_STATIONS, CONF_UPDATE_INTERVAL, DEFAULT_STATIONS, DEFAULT_UPDATE_INTERVAL, DOMAIN
 from .coordinator import _normalise_name
+
+_LOGGER = logging.getLogger(__name__)
 
 # Minimum update interval (API updates every 15 minutes)
 MIN_UPDATE_INTERVAL = 15
@@ -30,15 +33,28 @@ def _coerce_selection(raw: Any, available: dict[str, str]) -> list[str]:
         # Keep only refs we still know about; if we have no index, keep as-is.
         return [r for r in raw if r in available] if available else list(raw)
     if isinstance(raw, str) and raw.strip():
-        name_to_ref = {_normalise_name(name): ref for ref, name in available.items()}
+        # A station name can be shared by more than one station, so map each
+        # name to every matching ref rather than a single one.
+        name_to_refs: dict[str, list[str]] = {}
+        for ref, name in available.items():
+            name_to_refs.setdefault(_normalise_name(name), []).append(ref)
         refs: list[str] = []
         for line in raw.splitlines():
             normalised = _normalise_name(line)
             if not normalised:
                 continue
-            ref = name_to_ref.get(normalised)
-            if ref:
-                refs.append(ref)
+            matches = name_to_refs.get(normalised, [])
+            if len(matches) > 1:
+                _LOGGER.warning(
+                    "Station name %r matches %d stations (refs: %s); pre-selecting "
+                    "all of them. Refine your choice in the integration options.",
+                    line.strip(),
+                    len(matches),
+                    ", ".join(matches),
+                )
+            for ref in matches:
+                if ref not in refs:
+                    refs.append(ref)
         return refs
     return []
 
