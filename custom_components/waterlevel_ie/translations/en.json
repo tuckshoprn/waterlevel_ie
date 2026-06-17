@@ -22,10 +22,12 @@
         "title": "Configure WaterLevel.ie Options",
         "description": "Adjust how often the integration fetches data from WaterLevel.ie.\n\n**Current setting:** {current_interval} minutes\n**API update frequency:** Every {api_update_frequency} minutes\n**Allowed range:** {min_interval} to {max_interval} minutes\n\nLower intervals provide more frequent updates but use more resources. Since the API only updates every 15 minutes, intervals less than 15 minutes will not provide newer data.",
         "data": {
-          "update_interval": "Update Interval (minutes)"
+          "update_interval": "Update Interval (minutes)",
+          "stations": "Stations to track"
         },
         "data_description": {
-          "update_interval": "Enter a value between 15 minutes (most frequent) and 1440 minutes (once daily). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use."
+          "update_interval": "Enter a value between 15 minutes (most frequent) and 1440 minutes (once daily). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use.",
+          "stations": "Enter one station name per line (e.g. 'Ballina'). Leave blank to track all stations. Names are case-insensitive and match the station names shown on WaterLevel.ie."
         }
       }
     }

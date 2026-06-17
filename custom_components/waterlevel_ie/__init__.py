@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DOMAIN
+from .const import CONF_STATIONS, CONF_UPDATE_INTERVAL, DEFAULT_STATIONS, DEFAULT_UPDATE_INTERVAL, DOMAIN
 from .coordinator import WaterLevelDataCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
@@ -16,7 +16,9 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WaterLevel.ie from a config entry."""
     update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-    coordinator = WaterLevelDataCoordinator(hass, update_interval)
+    stations_raw = entry.options.get(CONF_STATIONS, DEFAULT_STATIONS)
+    station_filter = {s.strip() for s in stations_raw.splitlines() if s.strip()} if stations_raw else set()
+    coordinator = WaterLevelDataCoordinator(hass, update_interval, station_filter)
 
     # Load any cached data from previous runs before first refresh
     await coordinator.async_load_cache()

@@ -10,7 +10,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .const import CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL, DOMAIN
+from .const import CONF_STATIONS, CONF_UPDATE_INTERVAL, DEFAULT_STATIONS, DEFAULT_UPDATE_INTERVAL, DOMAIN
 
 # Minimum update interval (API updates every 15 minutes)
 MIN_UPDATE_INTERVAL = 15
@@ -80,10 +80,11 @@ class WaterLevelOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Get current value or use default
+        # Get current values or use defaults
         current_interval = self.config_entry.options.get(
             CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
         )
+        current_stations = self.config_entry.options.get(CONF_STATIONS, DEFAULT_STATIONS)
 
         return self.async_show_form(
             step_id="init",
@@ -100,6 +101,12 @@ class WaterLevelOptionsFlowHandler(config_entries.OptionsFlow):
                             unit_of_measurement="minutes",
                             mode=selector.NumberSelectorMode.BOX,
                         ),
+                    ),
+                    vol.Optional(
+                        CONF_STATIONS,
+                        default=current_stations,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True),
                     ),
                 }
             ),

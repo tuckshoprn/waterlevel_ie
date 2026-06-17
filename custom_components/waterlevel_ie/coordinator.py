@@ -26,6 +26,12 @@ from .const import (
     STATION_REF_MIN,
 )
 
+import re
+
+def _normalise_name(name: str) -> str:
+    """Lower-case and collapse whitespace for fuzzy station name matching."""
+    return re.sub(r"\s+", " ", name.strip().lower())
+
 _LOGGER = logging.getLogger(__name__)
 
 # Storage version for cached data
@@ -40,6 +46,7 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self,
         hass: HomeAssistant,
         update_interval_minutes: int = DEFAULT_UPDATE_INTERVAL,
+        station_filter: set[str] | None = None,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
@@ -52,6 +59,10 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_good_data: dict[str, Any] | None = None
         self._consecutive_failures = 0
         self._api_available = True
+        # Normalised station names to track; empty set means track all.
+        self._station_filter: set[str] = {_normalise_name(n) for n in station_filter} if station_filter else set()
+        if self._station_filter:
+            _LOGGER.debug("WaterLevel.ie: tracking %d station(s): %s", len(self._station_filter), self._station_filter)
 
         # Storage for persisting cached data across restarts
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -214,6 +225,10 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             timestamp = props.get("datetime")
 
             if not station_id or not sensor_type:
+                continue
+
+            # Apply user-configured station filter (if any)
+            if self._station_filter and _normalise_name(station_name) not in self._station_filter:
                 continue
 
             # Filter stations based on OPW restrictions
