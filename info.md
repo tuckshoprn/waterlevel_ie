@@ -43,4 +43,8 @@ Plus a diagnostic binary sensor showing API status.
 
 ## Data Source
 
-All data comes from WaterLevel.ie, operated by Ireland's Office of Public Works (OPW). This integration simply makes that public data available in Home Assistant.
+![Office of Public Works](https://raw.githubusercontent.com/tuckshoprn/waterlevel_ie/main/images/opw_logo.png)
+
+All data comes from [WaterLevel.ie](https://waterlevel.ie/), operated by Ireland's **Office of Public Works (OPW)**. This integration simply makes that public data available in Home Assistant.
+
+*OPW logo © Office of Public Works, shown here for attribution only. This is a community-built integration and is not affiliated with, sponsored by, or endorsed by the OPW.*
