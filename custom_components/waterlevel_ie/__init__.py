@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
     CONF_RIVERS,
@@ -76,6 +77,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Prune stale gauge devices left over from previously tracked stations:
+    # any WaterLevel.ie station device that no longer has entities is removed
+    # so the device list stays in sync with the current selection.
+    ent_reg = er.async_get(hass)
+    for device in list(dr.async_entries_for_config_entry(dev_reg, entry.entry_id)):
+        is_station = any(
+            domain == DOMAIN
+            and not ident.startswith("river:")
+            and ident != "waterlevel_ie_service"
+            for domain, ident in device.identifiers
+        )
+        if is_station and not er.async_entries_for_device(
+            ent_reg, device.id, include_disabled_entities=True
+        ):
+            dev_reg.async_remove_device(device.id)
 
     # Register update listener for options changes
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
