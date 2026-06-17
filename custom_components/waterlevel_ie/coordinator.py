@@ -60,10 +60,19 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_saved_data: dict[str, Any] | None = None
         self._consecutive_failures = 0
         self._api_available = True
-        # Normalised station names to track; empty set means track all.
-        self._station_filter: set[str] = {_normalise_name(n) for n in station_filter} if station_filter else set()
+        # Stations to track. Entries may be station refs (preferred) or names;
+        # an empty filter means track all stations. We keep both the raw entries
+        # (for exact ref matching) and normalised forms (for fuzzy name matching).
+        self._station_filter: set[str] = set(station_filter) if station_filter else set()
+        self._station_filter_normalised: set[str] = {
+            _normalise_name(s) for s in self._station_filter
+        }
         if self._station_filter:
             _LOGGER.debug("WaterLevel.ie: tracking %d station(s): %s", len(self._station_filter), self._station_filter)
+
+        # Index of all OPW-permitted stations seen in the feed (ref -> name),
+        # regardless of the active filter. Used to populate the options picker.
+        self.available_stations: dict[str, str] = {}
 
         # Storage for persisting cached data across restarts
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -115,6 +124,28 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Cached data saved to storage")
             except Exception as err:
                 _LOGGER.warning("Failed to save cache: %s", err)
+
+    async def async_available_stations(self) -> dict[str, str]:
+        """Return {station_ref: name} of permitted stations for the picker.
+
+        Uses the index built during normal updates; if it is empty (e.g. the
+        integration is currently running on cached data), fetch the feed once
+        to populate it. Never raises - returns an empty dict on failure.
+        """
+        if self.available_stations:
+            return self.available_stations
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(
+                API_URL, timeout=aiohttp.ClientTimeout(total=API_TIMEOUT)
+            ) as response:
+                response.raise_for_status()
+                geojson = await response.json()
+            # Side effect: _parse_data populates self.available_stations.
+            self._parse_data(geojson)
+        except Exception as err:  # noqa: BLE001 - best effort for the picker
+            _LOGGER.warning("Could not fetch station list for options flow: %s", err)
+        return self.available_stations
 
     @property
     def api_available(self) -> bool:
@@ -231,6 +262,7 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Parse GeoJSON data into station dictionary."""
         stations: dict[str, Any] = {}
         filtered_stations = set()
+        available: dict[str, str] = {}
 
         for feature in geojson.get("features", []):
             props = feature.get("properties", {})
@@ -247,12 +279,8 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not station_id or not sensor_type:
                 continue
 
-            # Apply user-configured station filter (if any)
-            if self._station_filter and _normalise_name(station_name) not in self._station_filter:
-                continue
-
-            # Filter stations based on OPW restrictions
-            # Only stations 00001-41000 are permitted for republication
+            # Enforce OPW republication restrictions first - only stations
+            # 00001-41000 are permitted for republication.
             try:
                 station_num = int(station_id)
                 if not (STATION_REF_MIN <= station_num <= STATION_REF_MAX):
@@ -260,6 +288,18 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     continue
             except (ValueError, TypeError):
                 _LOGGER.warning("Invalid station_ref format: %s", station_id)
+                continue
+
+            # Record every permitted station for the options picker, regardless
+            # of the active tracking filter.
+            available[station_id] = station_name
+
+            # Apply the user-configured tracking filter (if any). Match on the
+            # station ref (preferred) or, for backwards compatibility, the name.
+            if self._station_filter and (
+                station_id not in self._station_filter
+                and _normalise_name(station_name) not in self._station_filter_normalised
+            ):
                 continue
 
             if station_id not in stations:
@@ -307,5 +347,9 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 STATION_REF_MAX,
                 ", ".join(f"{num} ({name})" for _, num, name in filtered_list),
             )
+
+        # Refresh the picker index with every permitted station seen this cycle.
+        if available:
+            self.available_stations = available
 
         return stations

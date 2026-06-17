@@ -17,7 +17,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WaterLevel.ie from a config entry."""
     update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     stations_raw = entry.options.get(CONF_STATIONS, DEFAULT_STATIONS)
-    station_filter = {s.strip() for s in stations_raw.splitlines() if s.strip()} if stations_raw else set()
+    # The picker stores a list of station refs; older configs stored a newline
+    # separated string of station names. Accept either form.
+    if isinstance(stations_raw, list):
+        station_filter = {str(s).strip() for s in stations_raw if str(s).strip()}
+    elif isinstance(stations_raw, str):
+        station_filter = {s.strip() for s in stations_raw.splitlines() if s.strip()}
+    else:
+        station_filter = set()
     coordinator = WaterLevelDataCoordinator(hass, update_interval, station_filter)
 
     # Load any cached data from previous runs before first refresh
