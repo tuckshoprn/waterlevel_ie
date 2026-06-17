@@ -13,6 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import WaterLevelDataCoordinator
+from . import rivers as rivers_mod
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -191,11 +192,19 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
 
     @property
     def device_info(self) -> dict[str, Any]:
-        """Return device info to group all sensors of the same station."""
-        return {
+        """Return device info to group all sensors of the same station.
+
+        When the station's river is known, nest this device under its river
+        system device via via_device so gauges group by river.
+        """
+        info: dict[str, Any] = {
             "identifiers": {(DOMAIN, self._station_id)},
             "name": self._station_name,
             "manufacturer": "WaterLevel.ie",
             "model": "Hydrometric Station",
             "configuration_url": "https://waterlevel.ie/",
         }
+        river = rivers_mod.river_for_ref(self._station_id)
+        if river:
+            info["via_device"] = (DOMAIN, f"river:{river}")
+        return info

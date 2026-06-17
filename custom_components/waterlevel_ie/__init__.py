@@ -6,6 +6,7 @@ from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CONF_RIVERS,
@@ -52,6 +53,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
+    # Register a parent "river system" device for each river the tracked
+    # stations belong to, so the gauge devices nest under their river on the
+    # Devices page (via_device on each station device, set in sensor.py).
+    await hass.async_add_executor_job(rivers_mod.station_river_map)  # warm cache
+    dev_reg = dr.async_get(hass)
+    seen_rivers: set[str] = set()
+    for ref in coordinator.data:
+        river = rivers_mod.river_for_ref(ref)
+        if river and river not in seen_rivers:
+            seen_rivers.add(river)
+            dev_reg.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                identifiers={(DOMAIN, f"river:{river}")},
+                name=river,
+                manufacturer="WaterLevel.ie",
+                model="River system",
+                entry_type=dr.DeviceEntryType.SERVICE,
+                configuration_url="https://waterlevel.ie/",
+            )
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
