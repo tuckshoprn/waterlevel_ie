@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import WaterLevelDataCoordinator
@@ -166,9 +167,9 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
             attrs["using_cached_data"] = True
             attrs["data_age_hours"] = round(
                 (
-                    self.coordinator.hass.loop.time()
-                    - self.coordinator._last_successful_update.timestamp()
-                )
+                    dt_util.utcnow()
+                    - self.coordinator._last_successful_update
+                ).total_seconds()
                 / 3600,
                 1,
             )

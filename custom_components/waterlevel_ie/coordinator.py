@@ -217,7 +217,10 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         for feature in geojson.get("features", []):
             props = feature.get("properties", {})
-            coords = feature.get("geometry", {}).get("coordinates", [None, None])
+            geometry = feature.get("geometry") or {}
+            coords = geometry.get("coordinates") or []
+            longitude = coords[0] if len(coords) > 0 else None
+            latitude = coords[1] if len(coords) > 1 else None
             station_id = props.get("station_ref")
             station_name = props.get("station_name", "Unknown")
             sensor_type = props.get("sensor_ref")
@@ -246,13 +249,24 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 stations[station_id] = {
                     "name": props.get("station_name", station_id),
                     "region": props.get("region_id"),
-                    "location": f"{coords[1]}, {coords[0]}",
+                    "location": f"{latitude}, {longitude}",
                     "last_updated": timestamp,
                     "sensors": {},
                 }
 
+            try:
+                parsed_value = float(value) if value is not None else None
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Invalid value %r for station %s sensor %s, skipping",
+                    value,
+                    station_id,
+                    sensor_type,
+                )
+                continue
+
             stations[station_id]["sensors"][sensor_type] = {
-                "value": float(value) if value is not None else None,
+                "value": parsed_value,
                 "datetime": timestamp,
             }
 
