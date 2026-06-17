@@ -23,11 +23,13 @@
         "description": "Adjust how often the integration fetches data from WaterLevel.ie.\n\n**Current setting:** {current_interval} minutes\n**API update frequency:** Every {api_update_frequency} minutes\n**Allowed range:** {min_interval} to {max_interval} minutes\n\nLower intervals provide more frequent updates but use more resources. Since the API only updates every 15 minutes, intervals less than 15 minutes will not provide newer data.",
         "data": {
           "update_interval": "Update Interval (minutes)",
+          "rivers": "River systems to track",
           "stations": "Stations to track"
         },
         "data_description": {
           "update_interval": "Enter a value between 15 minutes (most frequent) and 1440 minutes (once daily). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use.",
-          "stations": "Search and select the stations you want to track. Leave empty to track all stations. Selecting a station includes all of its sensors (water level, temperature, flow rate, etc.)."
+          "rivers": "Select one or more rivers to track every gauge on those rivers. Combine with individual stations below. Leave both empty to track all stations.",
+          "stations": "Search and select individual stations to track (labelled by river). Selecting a station includes all of its sensors (water level, temperature, flow rate, etc.)."
         }
       }
     }

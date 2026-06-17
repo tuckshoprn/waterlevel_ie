@@ -7,8 +7,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_STATIONS, CONF_UPDATE_INTERVAL, DEFAULT_STATIONS, DEFAULT_UPDATE_INTERVAL, DOMAIN
+from .const import (
+    CONF_RIVERS,
+    CONF_STATIONS,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_RIVERS,
+    DEFAULT_STATIONS,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+)
 from .coordinator import WaterLevelDataCoordinator
+from . import rivers as rivers_mod
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
@@ -25,6 +34,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         station_filter = {s.strip() for s in stations_raw.splitlines() if s.strip()}
     else:
         station_filter = set()
+
+    # Expand any selected river systems into their station refs and add them to
+    # the explicit station selection. Empty selection = track all stations.
+    selected_rivers = entry.options.get(CONF_RIVERS, DEFAULT_RIVERS) or []
+    if selected_rivers:
+        river_refs = await hass.async_add_executor_job(
+            rivers_mod.refs_for_rivers, selected_rivers
+        )
+        station_filter |= river_refs
+
     coordinator = WaterLevelDataCoordinator(hass, update_interval, station_filter)
 
     # Load any cached data from previous runs before first refresh

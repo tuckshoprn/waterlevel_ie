@@ -11,8 +11,17 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .const import CONF_STATIONS, CONF_UPDATE_INTERVAL, DEFAULT_STATIONS, DEFAULT_UPDATE_INTERVAL, DOMAIN
+from .const import (
+    CONF_RIVERS,
+    CONF_STATIONS,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_RIVERS,
+    DEFAULT_STATIONS,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+)
 from .coordinator import _normalise_name
+from . import rivers as rivers_mod
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -150,12 +159,48 @@ class WaterLevelOptionsFlowHandler(config_entries.OptionsFlow):
         }
 
         if available:
-            # Searchable multi-select, one entry per station (all its sensors
-            # are tracked together). Sorted alphabetically by name.
-            options = [
-                selector.SelectOptionDict(value=ref, label=name)
-                for ref, name in sorted(available.items(), key=lambda kv: kv[1].lower())
-            ]
+            # Map of station ref -> river, for grouping/labelling.
+            river_map = await self.hass.async_add_executor_job(
+                rivers_mod.station_river_map
+            )
+
+            # River-system selector: pick whole rivers to track all their gauges.
+            rivers_present = sorted(
+                {river_map[r] for r in available if r in river_map}, key=str.lower
+            )
+            if rivers_present:
+                current_rivers = [
+                    r
+                    for r in self.config_entry.options.get(CONF_RIVERS, DEFAULT_RIVERS)
+                    if r in rivers_present
+                ]
+                schema[
+                    vol.Optional(CONF_RIVERS, default=current_rivers)
+                ] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value=r, label=r)
+                            for r in rivers_present
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=False,
+                    )
+                )
+
+            # Station selector: one entry per station (all sensors tracked
+            # together), labelled "River — Station" and sorted by river so a
+            # system's gauges cluster together; unmatched stations sort last.
+            def _sort_key(item: tuple[str, str]) -> tuple[str, str]:
+                ref, name = item
+                river = river_map.get(ref)
+                return (river.lower() if river else "~", name.lower())
+
+            options = []
+            for ref, name in sorted(available.items(), key=_sort_key):
+                river = river_map.get(ref)
+                label = f"{river} — {name}" if river else name
+                options.append(selector.SelectOptionDict(value=ref, label=label))
             schema[
                 vol.Optional(
                     CONF_STATIONS,

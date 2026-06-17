@@ -8,6 +8,9 @@ DEFAULT_UPDATE_INTERVAL = 15  # minutes
 CONF_STATIONS = "stations"
 DEFAULT_STATIONS = ""  # Empty = track all stations
 
+CONF_RIVERS = "rivers"
+DEFAULT_RIVERS: list[str] = []  # Empty = no river-based selection
+
 # API
 API_URL = "https://waterlevel.ie/geojson/latest/"
 API_TIMEOUT = 30  # seconds (increased from 10 for resilience)
