@@ -254,8 +254,12 @@ This integration uses the public API provided by WaterLevel.ie:
 
 ## Credits
 
+![Office of Public Works](https://raw.githubusercontent.com/tuckshoprn/waterlevel_ie/main/images/opw_logo.png)
+
 - Data provided by [WaterLevel.ie](https://waterlevel.ie/) - Office of Public Works (OPW)
 - Integration developed by [@tuckshoprn](https://github.com/tuckshoprn)
+
+*OPW logo © Office of Public Works, shown here for attribution only. This is a community-built integration and is not affiliated with, sponsored by, or endorsed by the OPW.*
 
 ## License
 
