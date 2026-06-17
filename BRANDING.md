@@ -4,15 +4,20 @@ This document describes the branding assets for the WaterLevel.ie Home Assistant
 
 ## Logo Files
 
-The following logo files are included in this repository:
+The logo files live in `custom_components/waterlevel_ie/brand/`. Since Home
+Assistant 2026.3, custom integrations are served their own brand images from
+this `brand/` subfolder via the local API
+(`/api/brands/integration/waterlevel_ie/icon.png`), taking priority over the
+brands CDN — so the integration shows its logo on the Devices & Services page
+without needing a submission to the home-assistant/brands repository.
 
 ### Standard Resolution
-- **icon.png** (256x256px) - Square icon for integration listings
-- **logo.png** (256x256px) - Full logo with branding
+- **brand/icon.png** (256x256px) - Square icon for integration listings
+- **brand/logo.png** (256x256px) - Full logo with branding
 
 ### High-DPI / Retina
-- **icon@2x.png** (512x512px) - High-resolution icon for retina displays
-- **logo@2x.png** (512x512px) - High-resolution logo for retina displays
+- **brand/icon@2x.png** (512x512px) - High-resolution icon for retina displays
+- **brand/logo@2x.png** (512x512px) - High-resolution logo for retina displays
 
 ## Design Elements
 
