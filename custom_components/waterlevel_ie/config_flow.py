@@ -78,9 +78,15 @@ class WaterLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_acknowledge()
 
         # Informational step: terms only, with a submit ("continue") button.
+        # URLs must be supplied as placeholders (hassfest forbids URLs in strings).
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({}),
+            description_placeholders={
+                "cc_by_url": "https://creativecommons.org/licenses/by/4.0/",
+                "source_url": "http://waterlevel.ie",
+                "terms_url": "https://waterlevel.ie/page/api/",
+            },
         )
 
     async def async_step_acknowledge(
