@@ -2,15 +2,24 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up WaterLevel.ie Integration",
-        "description": "Configure how often to fetch water level data from WaterLevel.ie (OPW Ireland).\n\nThe WaterLevel.ie API updates every 15 minutes, so update intervals less than 15 minutes are not recommended.",
+        "title": "WaterLevel.ie data usage terms",
+        "description": "**Please read the OPW data usage terms before continuing.**\n\nData is provided by Ireland's Office of Public Works (OPW) under the [Creative Commons Attribution 4.0 (CC BY 4.0)]({cc_by_url}) licence. By using this integration you agree to:\n\n- **Notify OPW as a courtesy** — email **waterlevel@opw.ie** with your intended usage, and the IP address / URL of your server(s).\n- **Attribute the data** — \"Contains Irish Public Sector Information licensed under a CC BY 4.0 licence (source {source_url} — provided by the Office of Public Works.)\" This integration adds attribution to every sensor automatically.\n- **Respect the rate limit** — do not fetch more often than once every 15 minutes (enforced by this integration).\n- **Republish eligible stations only** — those with reference numbers 00001–41000 (this integration filters automatically).\n\nOPW reserves the right to block users who generate excessive traffic. Read the full terms here: [waterlevel.ie/page/api]({terms_url})\n\nSelect **Submit** to continue."
+      },
+      "acknowledge": {
+        "title": "Set up WaterLevel.ie",
+        "description": "Set how often to fetch data, and confirm you have read the OPW data usage terms shown on the previous screen.\n\nThe WaterLevel.ie API updates every 15 minutes, so update intervals less than 15 minutes are not recommended.",
         "data": {
-          "update_interval": "Update Interval"
+          "update_interval": "Update Interval",
+          "opw_terms_acknowledged": "I have read the OPW usage terms and will notify waterlevel@opw.ie of my usage"
         },
         "data_description": {
-          "update_interval": "How often to check for new data (15 minutes to 24 hours). Recommended: 15-30 minutes."
+          "update_interval": "How often to check for new data. Minimum 15 minutes (to respect OPW's rate limit); there is no upper limit. Recommended: 15-30 minutes.",
+          "opw_terms_acknowledged": "Required. Please email waterlevel@opw.ie with your intended usage, then tick this box to continue."
         }
       }
+    },
+    "error": {
+      "opw_terms_not_acknowledged": "You must acknowledge the OPW usage terms to continue. Please email waterlevel@opw.ie with your intended usage, then tick the box."
     },
     "abort": {
       "already_configured": "This integration is already configured"
@@ -20,14 +29,14 @@
     "step": {
       "init": {
         "title": "Configure WaterLevel.ie Options",
-        "description": "Adjust how often the integration fetches data from WaterLevel.ie.\n\n**Current setting:** {current_interval} minutes\n**API update frequency:** Every {api_update_frequency} minutes\n**Allowed range:** {min_interval} to {max_interval} minutes\n\nLower intervals provide more frequent updates but use more resources. Since the API only updates every 15 minutes, intervals less than 15 minutes will not provide newer data.",
+        "description": "Adjust how often the integration fetches data from WaterLevel.ie.\n\n**Current setting:** {current_interval} minutes\n**API update frequency:** Every {api_update_frequency} minutes\n**Minimum interval:** {min_interval} minutes (no upper limit)\n\nLower intervals provide more frequent updates but use more resources. Since the API only updates every 15 minutes, intervals less than 15 minutes will not provide newer data.",
         "data": {
           "update_interval": "Update Interval (minutes)",
           "rivers": "River systems to track",
           "stations": "Stations to track"
         },
         "data_description": {
-          "update_interval": "Enter a value between 15 minutes (most frequent) and 1440 minutes (once daily). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use.",
+          "update_interval": "Enter 15 minutes or more (15 is the minimum, to respect OPW's rate limit; there is no upper limit). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use.",
           "rivers": "Select one or more rivers to track every gauge on those rivers. Combine with individual stations below. Leave both empty to track all stations.",
           "stations": "Search and select individual stations to track (labelled by river). Selecting a station includes all of its sensors (water level, temperature, flow rate, etc.)."
         }

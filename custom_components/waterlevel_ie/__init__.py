@@ -17,16 +17,38 @@ from .const import (
     DEFAULT_STATIONS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MIN_UPDATE_INTERVAL,
 )
 from .coordinator import WaterLevelDataCoordinator
 from . import rivers as rivers_mod
+
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WaterLevel.ie from a config entry."""
-    update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    # Enforce the OPW minimum regardless of how the value was stored (the config
+    # flow already enforces it, but guard against imported/edited values so we
+    # never poll faster than OPW allows). There is no upper bound - OPW only
+    # cares about the rate, so a slower poll is always fine.
+    raw_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    try:
+        update_interval = int(float(raw_interval))
+    except (TypeError, ValueError):
+        update_interval = DEFAULT_UPDATE_INTERVAL
+    if update_interval < MIN_UPDATE_INTERVAL:
+        _LOGGER.warning(
+            "Configured update interval %s min is below the %s min minimum; "
+            "using %s min to respect OPW rate limits.",
+            update_interval,
+            MIN_UPDATE_INTERVAL,
+            MIN_UPDATE_INTERVAL,
+        )
+        update_interval = MIN_UPDATE_INTERVAL
     stations_raw = entry.options.get(CONF_STATIONS, DEFAULT_STATIONS)
     # The picker stores a list of station refs; older configs stored a newline
     # separated string of station names. Accept either form.

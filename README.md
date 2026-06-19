@@ -53,7 +53,7 @@ Data from stations with reference numbers outside this range should not be used 
 
 To respect OPW's infrastructure:
 
-- ✅ This integration polls **every 15 minutes by default** (configurable to 5-120 minutes)
+- ✅ This integration polls **every 15 minutes by default** (configurable to any interval of 15 minutes or longer; the 15-minute minimum is enforced to respect OPW's rate guidance, and there is no upper limit)
 - ✅ Uses only pre-generated GeoJSON endpoints (no dynamic page scraping)
 - ✅ Includes proper timeout and retry logic to avoid excessive requests
 - ✅ Implements exponential backoff during service issues
@@ -107,7 +107,8 @@ By using this integration, you agree to comply with OPW's terms of use and data 
 1. Go to **Settings** → **Devices & Services**
 2. Click **Add Integration**
 3. Search for **WaterLevel.ie**
-4. Click to add (no configuration required)
+4. Set your update interval (15 minutes or longer; no upper limit)
+5. **Acknowledge the OPW data usage terms.** Setup requires you to confirm you have read the terms and will notify OPW (**waterlevel@opw.ie**) of your intended usage as a courtesy (see [Notification Requirement](#1-notification-requirement) above). You cannot complete setup without ticking this box.
 
 ### Configuration Options
 
@@ -266,6 +267,16 @@ This integration uses the public API provided by WaterLevel.ie:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### Version 1.9.0 (2026-06-19)
+
+**New Features:**
+- Two-step setup: a dedicated OPW data usage terms screen, followed by an acknowledgement step with a required checkbox (setup cannot complete without it)
+- Full OPW terms (courtesy notification to waterlevel@opw.ie, CC BY 4.0 attribution, rate limit, station-range restriction) shown in-flow with clickable links
+
+**Improvements:**
+- Update interval now has no upper limit; the 15-minute minimum (OPW rate limit) is enforced in the config flow and clamped at setup so a stored/imported value can never poll faster
+- Clarified data-usage documentation in the README
 
 ### Version 1.2.0 (2026-01-03)
 
