@@ -270,6 +270,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Changelog
 
+### Version 1.9.1 (2026-06-19)
+
+**Documentation:**
+- Corrected stale update-interval references in the README (the v1.9.0 release shipped with old "5-120 minutes" text). The interval is **15 minutes minimum (OPW rate limit) with no upper limit**.
+- Added an "Open in HACS" badge.
+
 ### Version 1.9.0 (2026-06-19)
 
 **New Features:**
