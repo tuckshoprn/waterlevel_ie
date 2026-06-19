@@ -4,6 +4,8 @@
 [![GitHub release](https://img.shields.io/github/release/tuckshoprn/waterlevel_ie.svg)](https://github.com/tuckshoprn/waterlevel_ie/releases)
 [![License](https://img.shields.io/github/license/tuckshoprn/waterlevel_ie.svg)](LICENSE)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tuckshoprn&repository=waterlevel_ie&category=integration)
+
 A Home Assistant custom integration that provides real-time hydrometric data from [WaterLevel.ie](https://waterlevel.ie/) - Ireland's Office of Public Works (OPW) water monitoring network.
 
 ## Features
@@ -15,7 +17,7 @@ A Home Assistant custom integration that provides real-time hydrometric data fro
   - Automatic retry with exponential backoff
   - 24-hour data retention during API outages
   - Smart error logging to reduce spam
-- 🎛️ **Configurable**: Adjustable update interval (5-120 minutes)
+- 🎛️ **Configurable**: Adjustable update interval (15 minutes or longer; no upper limit)
 - 🔌 **API Status Monitoring**: Binary sensor shows real-time API availability
 - 📍 **Location Data**: Each sensor includes GPS coordinates and Google Maps links
 
@@ -117,7 +119,7 @@ After installation, you can configure the integration:
 1. Go to **Settings** → **Devices & Services**
 2. Find **WaterLevel.ie** and click **Configure**
 3. Adjust settings:
-   - **Update Interval**: How often to fetch data (5-120 minutes, default: 15)
+   - **Update Interval**: How often to fetch data (15 minutes or longer, default: 15)
 
 ## Available Sensors
 
