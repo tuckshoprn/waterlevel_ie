@@ -12,6 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_ACK_OPW_TERMS,
     CONF_RIVERS,
     CONF_STATIONS,
     CONF_UPDATE_INTERVAL,
@@ -19,16 +20,12 @@ from .const import (
     DEFAULT_STATIONS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MIN_UPDATE_INTERVAL,
 )
 from .coordinator import _normalise_name
 from . import rivers as rivers_mod
 
 _LOGGER = logging.getLogger(__name__)
-
-# Minimum update interval (API updates every 15 minutes)
-MIN_UPDATE_INTERVAL = 15
-# Maximum update interval (24 hours = 1440 minutes)
-MAX_UPDATE_INTERVAL = 1440
 
 
 def _coerce_selection(raw: Any, available: dict[str, str]) -> list[str]:
@@ -76,37 +73,67 @@ class WaterLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial setup step."""
+        """Show the OPW data usage terms; submitting continues to setup."""
         if user_input is not None:
-            # Store the update interval in options (not data)
-            return self.async_create_entry(
-                title="WaterLevel.ie",
-                data={},
-                options={CONF_UPDATE_INTERVAL: user_input[CONF_UPDATE_INTERVAL]},
-            )
+            return await self.async_step_acknowledge()
 
-        # Show configuration form with update interval
+        # Informational step: terms only, with a submit ("continue") button.
         return self.async_show_form(
             step_id="user",
+            data_schema=vol.Schema({}),
+        )
+
+    async def async_step_acknowledge(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Collect the update interval and require acknowledgement of the terms."""
+        errors: dict[str, str] = {}
+        # Default the interval field; preserve the user's entry when re-showing
+        # the form after a validation error.
+        interval_default = DEFAULT_UPDATE_INTERVAL
+        if user_input is not None:
+            interval_default = user_input.get(
+                CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+            )
+            if not user_input.get(CONF_ACK_OPW_TERMS):
+                # OPW asks data users to notify them of their usage as a courtesy;
+                # require the installer to acknowledge this before proceeding.
+                errors["base"] = "opw_terms_not_acknowledged"
+            else:
+                # Store the update interval in options (not data)
+                return self.async_create_entry(
+                    title="WaterLevel.ie",
+                    data={},
+                    options={
+                        CONF_UPDATE_INTERVAL: user_input[CONF_UPDATE_INTERVAL]
+                    },
+                )
+
+        # Show configuration form with update interval and the acknowledgement.
+        return self.async_show_form(
+            step_id="acknowledge",
             data_schema=vol.Schema(
                 {
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
-                        default=DEFAULT_UPDATE_INTERVAL,
+                        default=interval_default,
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=MIN_UPDATE_INTERVAL,
-                            max=MAX_UPDATE_INTERVAL,
                             step=1,
                             unit_of_measurement="minutes",
                             mode=selector.NumberSelectorMode.BOX,
                         ),
                     ),
+                    vol.Required(
+                        CONF_ACK_OPW_TERMS,
+                        default=False,
+                    ): selector.BooleanSelector(),
                 }
             ),
+            errors=errors,
             description_placeholders={
                 "min_interval": str(MIN_UPDATE_INTERVAL),
-                "max_interval": str(MAX_UPDATE_INTERVAL),
                 "api_update_frequency": "15",
             },
         )
@@ -150,7 +177,6 @@ class WaterLevelOptionsFlowHandler(config_entries.OptionsFlow):
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=MIN_UPDATE_INTERVAL,
-                    max=MAX_UPDATE_INTERVAL,
                     step=1,
                     unit_of_measurement="minutes",
                     mode=selector.NumberSelectorMode.BOX,
@@ -235,7 +261,6 @@ class WaterLevelOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema(schema),
             description_placeholders={
                 "min_interval": str(MIN_UPDATE_INTERVAL),
-                "max_interval": str(MAX_UPDATE_INTERVAL),
                 "api_update_frequency": "15",
                 "current_interval": str(current_interval),
             },
