@@ -1,15 +1,15 @@
 {
   "domain": "waterlevel_ie",
   "name": "WaterLevel.ie",
-  "version": "1.8.1",
-  "documentation": "https://github.com/tuckshoprn/waterlevel_ie",
-  "issue_tracker": "https://github.com/tuckshoprn/waterlevel_ie/issues",
-  "requirements": [],
-  "dependencies": [],
   "codeowners": [
     "@tuckshoprn"
   ],
-  "iot_class": "cloud_polling",
   "config_flow": true,
-  "single_config_entry": true
+  "dependencies": [],
+  "documentation": "https://github.com/tuckshoprn/waterlevel_ie",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/tuckshoprn/waterlevel_ie/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.8.1"
 }
