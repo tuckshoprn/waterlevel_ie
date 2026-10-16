@@ -8,6 +8,7 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, Sen
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -18,6 +19,11 @@ from . import hydro
 from . import rivers as rivers_mod
 
 _LOGGER = logging.getLogger(__name__)
+
+# Newer HA links a child device to its parent by registry id (`via_device_id`);
+# the identifier-based `via_device` is removed in 2027.8. Older HA (we support
+# 2024.1+) only knows `via_device`, so pick whichever this version accepts.
+_HAS_VIA_DEVICE_ID = "via_device_id" in DeviceInfo.__annotations__
 
 # Sensor metadata with display precision for better long-term statistics.
 # Sensor numbers per OPW (https://waterlevel.ie/page/api/): 0001 water level,
@@ -219,7 +225,7 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
         """Return device info to group all sensors of the same station.
 
         When the station's river is known, nest this device under its river
-        system device via via_device so gauges group by river.
+        system device so gauges group by river.
         """
         info: dict[str, Any] = {
             "identifiers": {(DOMAIN, self._station_id)},
@@ -230,5 +236,8 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
         }
         river = rivers_mod.river_for_ref(self._station_id)
         if river:
-            info["via_device"] = (DOMAIN, f"river:{river}")
+            if not _HAS_VIA_DEVICE_ID:
+                info["via_device"] = (DOMAIN, f"river:{river}")
+            elif river_device_id := self.coordinator.river_device_ids.get(river):
+                info["via_device_id"] = river_device_id
         return info

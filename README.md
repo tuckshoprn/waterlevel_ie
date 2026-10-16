@@ -288,6 +288,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Fixes:**
 - Friendly names no longer repeat the station name (e.g. "Rahans (Moy) Rahans (Moy) Water Level"). Entity IDs are unchanged.
+- Station devices link to their river device with `via_device_id` on Home Assistant versions that support it (the old `via_device` is removed in 2027.8); older versions keep using `via_device`.
 
 ### Version 1.10.0 (2026-10-16)
 

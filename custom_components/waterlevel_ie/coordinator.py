@@ -78,6 +78,10 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # regardless of the active filter. Used to populate the options picker.
         self.available_stations: dict[str, str] = {}
 
+        # River system name -> device registry id, filled in at setup so
+        # station devices can link to their river via via_device_id.
+        self.river_device_ids: dict[str, str] = {}
+
         # Latest OPW Hydro-Data discharge per station number, and per-station
         # flow statistics ({"fetched": datetime, "stats": dict}).
         self._flow_latest: dict[str, dict[str, Any]] = {}
