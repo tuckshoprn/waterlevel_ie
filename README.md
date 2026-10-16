@@ -10,7 +10,7 @@ A Home Assistant custom integration that provides real-time hydrometric data fro
 
 ## Features
 
-- 📊 **Multiple Sensor Types**: Water levels, temperatures, flow rates, and ordnance datum readings
+- 📊 **Multiple Sensor Types**: Water levels, temperatures, gauge battery voltage, and ordnance datum readings
 - 🌍 **All Irish Stations**: Access data from hundreds of monitoring stations across Ireland
 - 📈 **Long-Term Statistics**: Full support for Home Assistant's long-term statistics and history
 - 🔄 **Resilient Design**:
@@ -129,14 +129,16 @@ Each hydrometric station can provide multiple sensor types:
 |-------------|-------------|------|--------------|
 | Water Level | Current water height | m | Distance |
 | Water Temperature | Water temperature | °C | Temperature |
-| Flow Rate | Water flow rate | m³/s | Volume Flow Rate |
+| Battery Voltage | Gauge logger battery (diagnostic) | V | Voltage |
 | Ordnance Datum | Height above sea level | - | - |
+
+OPW does not publish river flow through this API. Sensor `0003` is the logger's battery voltage (see the [OPW API page](https://waterlevel.ie/page/api/)). OPW also notes that temperature (`0002`) can be heated by warm weather and may not represent the water body.
 
 ### Example Sensors
 
 - `sensor.river_shannon_ballyleague_water_level`
 - `sensor.river_lee_cork_city_water_temperature`
-- `sensor.river_liffey_islandbridge_flow_rate`
+- `sensor.river_liffey_islandbridge_battery_voltage`
 
 ### Binary Sensor
 
@@ -180,7 +182,7 @@ All sensors are configured for optimal long-term statistics:
 - **Display Precision**:
   - Water Level: 3 decimals (mm precision)
   - Temperature: 1 decimal (0.1°C)
-  - Flow Rate: 3 decimals
+  - Battery Voltage: 2 decimals
   - Ordnance Datum: 2 decimals
 
 Statistics are automatically tracked in Home Assistant's recorder for historical analysis and graphs.
@@ -269,6 +271,13 @@ This integration uses the public API provided by WaterLevel.ie:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### Version 1.10.0 (2026-10-16)
+
+**Fix (breaking for dashboards/automations):**
+- OPW sensor `0003` was mislabelled as "Flow Rate" (m³/s). It is the gauge logger's **battery voltage**, per the [OPW API page](https://waterlevel.ie/page/api/). It is now "Battery Voltage" (V, device class Voltage) and a diagnostic entity.
+- Existing `sensor.*_flow_rate` entities are renamed to `sensor.*_battery_voltage` automatically on startup. History is kept (same unique ID). IDs you customised yourself are left alone. Update any cards or automations that referenced `*_flow_rate`.
+- Home Assistant may raise a repair about the statistics unit changing from m³/s to V. Choose to delete the old statistics; they were never flow data.
 
 ### Version 1.9.1 (2026-06-19)
 

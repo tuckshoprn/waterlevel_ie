@@ -97,6 +97,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 configuration_url="https://waterlevel.ie/",
             )
 
+    _migrate_battery_voltage_entity_ids(hass, entry)
+
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -120,6 +122,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
+
+
+def _migrate_battery_voltage_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Rename sensor.*_flow_rate entities to sensor.*_battery_voltage.
+
+    Before 1.10.0, OPW sensor 0003 was mislabelled as "Flow Rate"; it is the
+    gauge logger's battery voltage. The unique_id is unchanged so history is
+    kept; only auto-generated IDs are renamed, and never onto an existing ID.
+    """
+    ent_reg = er.async_get(hass)
+    for ent in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if not ent.unique_id.endswith("_0003"):
+            continue
+        head, sep, tail = ent.entity_id.rpartition("_flow_rate")
+        if not sep:
+            continue
+        new_id = f"{head}_battery_voltage{tail}"
+        if ent_reg.async_get(new_id) is not None:
+            _LOGGER.warning("Not renaming %s: %s already exists", ent.entity_id, new_id)
+            continue
+        _LOGGER.info("Renaming %s to %s (OPW sensor 0003 is battery voltage)", ent.entity_id, new_id)
+        ent_reg.async_update_entity(ent.entity_id, new_entity_id=new_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

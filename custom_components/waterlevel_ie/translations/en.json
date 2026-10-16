@@ -38,7 +38,7 @@
         "data_description": {
           "update_interval": "Enter 15 minutes or more (15 is the minimum, to respect OPW's rate limit; there is no upper limit). Recommended: 15-30 minutes for active monitoring, 60-120 minutes for casual use.",
           "rivers": "Select one or more rivers to track every gauge on those rivers. Combine with individual stations below. Leave both empty to track all stations.",
-          "stations": "Search and select individual stations to track (labelled by river). Selecting a station includes all of its sensors (water level, temperature, flow rate, etc.)."
+          "stations": "Search and select individual stations to track (labelled by river). Selecting a station includes all of its sensors (water level, temperature, battery voltage, etc.)."
         }
       }
     }

@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -17,31 +18,33 @@ from . import rivers as rivers_mod
 
 _LOGGER = logging.getLogger(__name__)
 
-# Sensor metadata with display precision for better long-term statistics
+# Sensor metadata with display precision for better long-term statistics.
+# Sensor numbers per OPW (https://waterlevel.ie/page/api/): 0001 water level,
+# 0002 temperature, 0003 logger battery voltage. 0003 is NOT river flow.
 SENSOR_NAMES: dict[str, str] = {
     "0001": "Water Level",
     "0002": "Water Temperature",
-    "0003": "Flow Rate",
+    "0003": "Battery Voltage",
     "OD": "Ordnance Datum",
 }
 
 SENSOR_UNITS: dict[str, str] = {
     "0001": "m",
     "0002": "°C",
-    "0003": "m³/s",
+    "0003": "V",
 }
 
 SENSOR_DEVICE_CLASSES: dict[str, SensorDeviceClass] = {
     "0001": SensorDeviceClass.DISTANCE,
     "0002": SensorDeviceClass.TEMPERATURE,
-    "0003": SensorDeviceClass.VOLUME_FLOW_RATE,
+    "0003": SensorDeviceClass.VOLTAGE,
     # "OD" will be plain number, no device_class
 }
 
 SENSOR_ICONS: dict[str, str] = {
     "0001": "mdi:waves",
     "0002": "mdi:thermometer-water",
-    "0003": "mdi:pipe",
+    "0003": "mdi:car-battery",
     "OD": "mdi:altimeter",
 }
 
@@ -49,7 +52,7 @@ SENSOR_ICONS: dict[str, str] = {
 SENSOR_PRECISION: dict[str, int] = {
     "0001": 3,  # Water level to mm precision
     "0002": 1,  # Temperature to 0.1°C
-    "0003": 3,  # Flow rate to 3 decimal places
+    "0003": 2,  # Battery voltage to 0.01 V
     "OD": 2,  # Ordnance datum to cm precision
 }
 
@@ -145,6 +148,13 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
         if self._sensor_type == "OD":
             return None
         return SENSOR_DEVICE_CLASSES.get(self._sensor_type)
+
+    @property
+    def entity_category(self) -> EntityCategory | None:
+        """Logger battery voltage describes the gauge, not the river."""
+        if self._sensor_type == "0003":
+            return EntityCategory.DIAGNOSTIC
+        return None
 
     @property
     def state_class(self) -> SensorStateClass:

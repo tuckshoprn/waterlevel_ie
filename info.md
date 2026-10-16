@@ -1,6 +1,6 @@
 # WaterLevel.ie Integration
 
-Monitor water levels, temperatures, and flow rates from Ireland's national hydrometric network.
+Monitor water levels, temperatures, and gauge status from Ireland's national hydrometric network.
 
 ## About
 
@@ -8,7 +8,7 @@ This integration connects Home Assistant to [WaterLevel.ie](https://waterlevel.i
 
 ## Key Features
 
-- **Multiple Sensor Types**: Water levels, temperatures, flow rates, and ordnance datum
+- **Multiple Sensor Types**: Water levels, temperatures, gauge battery voltage, and ordnance datum
 - **All Irish Stations**: Automatic discovery of all available monitoring stations
 - **Resilient**: 24-hour data retention, automatic retry, smart error handling
 - **Configurable**: Adjustable update intervals
@@ -28,7 +28,7 @@ Each monitoring station creates a device with multiple sensors:
 
 - Water Level (meters)
 - Water Temperature (°C)
-- Flow Rate (m³/s)
+- Battery Voltage (V, diagnostic)
 - Ordnance Datum
 
 Plus a diagnostic binary sensor showing API status.
