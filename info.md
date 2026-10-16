@@ -1,6 +1,6 @@
 # WaterLevel.ie Integration
 
-Monitor water levels, temperatures, and gauge status from Ireland's national hydrometric network.
+Monitor water levels, temperatures, river flow, and gauge status from Ireland's national hydrometric network.
 
 ## About
 
@@ -28,6 +28,7 @@ Each monitoring station creates a device with multiple sensors:
 
 - Water Level (meters)
 - Water Temperature (°C)
+- Flow (m³/s) and Flow Percentile (%), for rated gauges
 - Battery Voltage (V, diagnostic)
 - Ordnance Datum
 

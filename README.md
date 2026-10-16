@@ -10,7 +10,7 @@ A Home Assistant custom integration that provides real-time hydrometric data fro
 
 ## Features
 
-- 📊 **Multiple Sensor Types**: Water levels, temperatures, gauge battery voltage, and ordnance datum readings
+- 📊 **Multiple Sensor Types**: Water levels, temperatures, river flow (discharge) with flow percentiles, gauge battery voltage, and ordnance datum readings
 - 🌍 **All Irish Stations**: Access data from hundreds of monitoring stations across Ireland
 - 📈 **Long-Term Statistics**: Full support for Home Assistant's long-term statistics and history
 - 🔄 **Resilient Design**:
@@ -130,15 +130,19 @@ Each hydrometric station can provide multiple sensor types:
 | Water Level | Current water height | m | Distance |
 | Water Temperature | Water temperature | °C | Temperature |
 | Battery Voltage | Gauge logger battery (diagnostic) | V | Voltage |
+| Flow | River discharge (rated gauges only) | m³/s | Volume Flow Rate |
+| Flow Percentile | Where the current flow sits in the station's record (50 = median, 90 = only 10% of the record was higher) | % | - |
 | Ordnance Datum | Height above sea level | - | - |
 
-OPW does not publish river flow through this API. Sensor `0003` is the logger's battery voltage (see the [OPW API page](https://waterlevel.ie/page/api/)). OPW also notes that temperature (`0002`) can be heated by warm weather and may not represent the water body.
+River flow is not in the waterlevel.ie live feed: Flow and Flow Percentile come from [OPW Hydro-Data](https://waterlevel.ie/hydro-data/) (CC BY 4.0, see its [disclaimer](https://waterlevel.ie/hydro-data/html/disclaimer.html)) and only exist for gauges with a rating curve - tidal and lake gauges have none, so those stations get no flow sensors. Flow uses one bulk request per update; each station's flow statistics (percentiles, long-term average, median and highest annual maximum, shown as attributes) are fetched once a day. Sensor `0003` in the live feed is the logger's battery voltage (see the [OPW API page](https://waterlevel.ie/page/api/)). OPW also notes that temperature (`0002`) can be heated by warm weather and may not represent the water body.
 
 ### Example Sensors
 
 - `sensor.river_shannon_ballyleague_water_level`
 - `sensor.river_lee_cork_city_water_temperature`
 - `sensor.river_liffey_islandbridge_battery_voltage`
+- `sensor.river_moy_rahans_flow`
+- `sensor.river_moy_rahans_flow_percentile`
 
 ### Binary Sensor
 
@@ -183,6 +187,8 @@ All sensors are configured for optimal long-term statistics:
   - Water Level: 3 decimals (mm precision)
   - Temperature: 1 decimal (0.1°C)
   - Battery Voltage: 2 decimals
+  - Flow: 3 decimals
+  - Flow Percentile: 0 decimals
   - Ordnance Datum: 2 decimals
 
 Statistics are automatically tracked in Home Assistant's recorder for historical analysis and graphs.
@@ -271,6 +277,17 @@ This integration uses the public API provided by WaterLevel.ie:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### Version 1.11.0 (2026-10-16)
+
+**New Features:**
+- **Flow** sensor (m³/s) for every tracked gauge that OPW Hydro-Data publishes discharge for, from a single bulk request per update.
+- **Flow Percentile** sensor: where the current flow sits in the station's long-term record (higher = more water), interpolated from OPW's published flow-duration percentiles. Attributes include the exceedance flows (Q01-Q99).
+- Flow attributes: long-term average, median annual maximum, highest annual maximum.
+- Flow statistics are fetched once a day per station, at most 10 per update, so large selections don't burst OPW.
+
+**Fixes:**
+- Friendly names no longer repeat the station name (e.g. "Rahans (Moy) Rahans (Moy) Water Level"). Entity IDs are unchanged.
 
 ### Version 1.10.0 (2026-10-16)
 

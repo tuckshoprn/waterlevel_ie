@@ -41,3 +41,10 @@ DATA_RETENTION_HOURS = 24  # Keep last good data for 24 hours during outages
 # Source: https://waterlevel.ie/page/api/
 STATION_REF_MIN = 1
 STATION_REF_MAX = 41000
+
+# OPW Hydro-Data flow statistics (percentiles etc.) change at most yearly; refresh
+# daily, and fetch at most this many stations per update so a large selection
+# spreads its first fetches out instead of bursting OPW at startup.
+FLOW_STATS_REFRESH_HOURS = 24
+FLOW_STATS_RETRY_HOURS = 1
+FLOW_STATS_MAX_PER_UPDATE = 10

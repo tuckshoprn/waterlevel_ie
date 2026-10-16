@@ -20,11 +20,15 @@ from .const import (
     DATA_RETENTION_HOURS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    FLOW_STATS_MAX_PER_UPDATE,
+    FLOW_STATS_REFRESH_HOURS,
+    FLOW_STATS_RETRY_HOURS,
     MAX_RETRY_ATTEMPTS,
     RETRY_BACKOFF_FACTOR,
     STATION_REF_MAX,
     STATION_REF_MIN,
 )
+from . import hydro
 
 import re
 
@@ -73,6 +77,11 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Index of all OPW-permitted stations seen in the feed (ref -> name),
         # regardless of the active filter. Used to populate the options picker.
         self.available_stations: dict[str, str] = {}
+
+        # Latest OPW Hydro-Data discharge per station number, and per-station
+        # flow statistics ({"fetched": datetime, "stats": dict}).
+        self._flow_latest: dict[str, dict[str, Any]] = {}
+        self._flow_stats: dict[str, dict[str, Any]] = {}
 
         # Storage for persisting cached data across restarts
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -179,6 +188,7 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                     # Success! Parse and store the data
                     parsed_data = self._parse_data(geojson)
+                    await self._async_add_flow(session, parsed_data)
                     self._last_good_data = parsed_data
                     self._last_successful_update = dt_util.utcnow()
                     self._consecutive_failures = 0
@@ -257,6 +267,93 @@ class WaterLevelDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._consecutive_failures,
         )
         raise UpdateFailed(error_msg) from last_exception
+
+    async def _async_add_flow(
+        self, session: aiohttp.ClientSession, stations: dict[str, Any]
+    ) -> None:
+        """Merge OPW Hydro-Data discharge and flow percentiles into stations.
+
+        Best effort: a Hydro-Data failure never fails the main update; the last
+        good flow values are reused instead. Only gauges with a rating curve
+        publish flow, so other stations simply get no flow sensors.
+        """
+        try:
+            async with session.get(
+                hydro.FLOW_LAYER_URL,
+                timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
+            ) as response:
+                response.raise_for_status()
+                layer = hydro.parse_layer(await response.json(content_type=None))
+            if layer:
+                self._flow_latest = layer
+        except (aiohttp.ClientError, TimeoutError, asyncio.TimeoutError, ValueError) as err:
+            _LOGGER.debug("Hydro-Data flow layer unavailable, reusing last values: %s", err)
+
+        now = dt_util.utcnow()
+        budget = FLOW_STATS_MAX_PER_UPDATE
+        for station_id, station in stations.items():
+            number = hydro.station_no(station_id)
+            flow = self._flow_latest.get(number) if number else None
+            if flow is None:
+                continue
+            flow_sensor: dict[str, Any] = {
+                "value": flow["value"],
+                "datetime": flow["datetime"],
+            }
+            station["sensors"][hydro.FLOW] = flow_sensor
+
+            cached = self._flow_stats.get(number)
+            if budget and (
+                cached is None
+                or now - cached["fetched"] > timedelta(hours=FLOW_STATS_REFRESH_HOURS)
+            ):
+                budget -= 1
+                stats = await self._async_fetch_flow_stats(session, number)
+                if stats is not None:
+                    cached = {"fetched": now, "stats": stats}
+                elif cached is None:
+                    # Retry a failed first fetch after an hour, not a day.
+                    cached = {
+                        "fetched": now
+                        - timedelta(hours=FLOW_STATS_REFRESH_HOURS - FLOW_STATS_RETRY_HOURS),
+                        "stats": {},
+                    }
+                self._flow_stats[number] = cached
+
+            stats = cached["stats"] if cached else {}
+            if not stats:
+                continue
+            flow_sensor["attributes"] = {
+                key: stats[key]
+                for key in ("long_term_average", "median_annual_max", "highest_annual_max")
+                if key in stats
+            }
+            percentile = hydro.flow_percentile(flow["value"], stats.get("percentiles"))
+            if percentile is not None:
+                station["sensors"][hydro.FLOW_PERCENTILE] = {
+                    "value": percentile,
+                    "datetime": flow["datetime"],
+                    "attributes": {
+                        "exceedance_flows_m3s": {
+                            f"Q{p:02d}": q for p, q in stats["percentiles"].items()
+                        },
+                    },
+                }
+
+    async def _async_fetch_flow_stats(
+        self, session: aiohttp.ClientSession, number: str
+    ) -> dict[str, Any] | None:
+        """Fetch one station's flow statistics; None on failure."""
+        try:
+            async with session.get(
+                hydro.flow_stats_url(number),
+                timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
+            ) as response:
+                response.raise_for_status()
+                return hydro.parse_flow_stats(await response.json(content_type=None))
+        except (aiohttp.ClientError, TimeoutError, asyncio.TimeoutError, ValueError) as err:
+            _LOGGER.debug("Hydro-Data flow statistics unavailable for %s: %s", number, err)
+            return None
 
     def _parse_data(self, geojson: dict[str, Any]) -> dict[str, Any]:
         """Parse GeoJSON data into station dictionary."""

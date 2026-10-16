@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import WaterLevelDataCoordinator
+from . import hydro
 from . import rivers as rivers_mod
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,18 +27,23 @@ SENSOR_NAMES: dict[str, str] = {
     "0002": "Water Temperature",
     "0003": "Battery Voltage",
     "OD": "Ordnance Datum",
+    hydro.FLOW: "Flow",
+    hydro.FLOW_PERCENTILE: "Flow Percentile",
 }
 
 SENSOR_UNITS: dict[str, str] = {
     "0001": "m",
     "0002": "°C",
     "0003": "V",
+    hydro.FLOW: "m³/s",
+    hydro.FLOW_PERCENTILE: "%",
 }
 
 SENSOR_DEVICE_CLASSES: dict[str, SensorDeviceClass] = {
     "0001": SensorDeviceClass.DISTANCE,
     "0002": SensorDeviceClass.TEMPERATURE,
     "0003": SensorDeviceClass.VOLTAGE,
+    hydro.FLOW: SensorDeviceClass.VOLUME_FLOW_RATE,
     # "OD" will be plain number, no device_class
 }
 
@@ -46,6 +52,8 @@ SENSOR_ICONS: dict[str, str] = {
     "0002": "mdi:thermometer-water",
     "0003": "mdi:car-battery",
     "OD": "mdi:altimeter",
+    hydro.FLOW: "mdi:waves-arrow-right",
+    hydro.FLOW_PERCENTILE: "mdi:chart-bell-curve-cumulative",
 }
 
 # Suggested display precision for each sensor type
@@ -54,6 +62,8 @@ SENSOR_PRECISION: dict[str, int] = {
     "0002": 1,  # Temperature to 0.1°C
     "0003": 2,  # Battery voltage to 0.01 V
     "OD": 2,  # Ordnance datum to cm precision
+    hydro.FLOW: 3,  # Discharge to litre/s precision, as OPW publishes it
+    hydro.FLOW_PERCENTILE: 0,
 }
 
 
@@ -120,8 +130,8 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
 
     @property
     def name(self) -> str:
-        """Friendly name for the sensor."""
-        return f"{self._station_name} {self._sensor_name}"
+        """Sensor name; HA prefixes the station (device) name (has_entity_name)."""
+        return self._sensor_name
 
     @property
     def unique_id(self) -> str:
@@ -185,6 +195,10 @@ class WaterLevelSensor(CoordinatorEntity[WaterLevelDataCoordinator], SensorEntit
             "location_link": f"https://www.google.com/maps/search/?api=1&query={self._lat},{self._lon}",
             "attribution": "Data provided by WaterLevel.ie (OPW)",
         }
+        if self._sensor_type in (hydro.FLOW, hydro.FLOW_PERCENTILE):
+            attrs["attribution"] = hydro.HYDRO_ATTRIBUTION
+            attrs["disclaimer"] = hydro.HYDRO_DISCLAIMER_URL
+        attrs.update(sensor_info.get("attributes") or {})
 
         # Add information about cached data if API is unavailable
         if not self.coordinator.api_available and self.coordinator.last_successful_update:
